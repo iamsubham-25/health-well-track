@@ -1,0 +1,5 @@
+{
+  "name": "Well Track",
+  "description": "An AI-powered symptom checker that suggests possible causes for your symptoms and helps you find nearby medical services. Includes a personal dashboard to track your health history.",
+  "requestFramePermissions": []
+}

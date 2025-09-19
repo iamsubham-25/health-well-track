@@ -99,7 +99,8 @@ export const generatePdfReport = (item: HistoryItem) => {
 
   // --- Footer Disclaimer ---
   // Position disclaimer at the bottom of the last page
-  const finalPage = doc.internal.getNumberOfPages();
+  // FIX: Replaced `doc.internal.getNumberOfPages()` with `doc.internal.pages.length` to correctly get the page count.
+  const finalPage = doc.internal.pages.length;
   doc.setPage(finalPage);
   const disclaimerY = pageHeight - 30;
   if (y > disclaimerY) { // If content is too close, add a new page

@@ -2,13 +2,12 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { SymptomAnalysis, NearbyServiceResult, HistoryItem } from '../types';
 
-const apiKey = process.env.REACT_APP_API_KEY;
-
-if (!apiKey) {
-  throw new Error("REACT_APP_API_KEY environment variable not set");
+// FIX: API key must be read from process.env.API_KEY per coding guidelines.
+if (!process.env.API_KEY) {
+  throw new Error("API_KEY environment variable not set");
 }
 
-const ai = new GoogleGenAI({ apiKey });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const symptomAnalysisSchema = {
   type: Type.OBJECT,

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
+import { getReminders } from '../services/reminderService';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -15,15 +16,65 @@ const AppLogoIcon: React.FC<{ className?: string }> = ({ className }) => (
 
 const Layout: React.FC<LayoutProps> = ({ children, onLogout }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!('Notification' in window)) {
+      console.log("This browser does not support desktop notification");
+      return;
+    }
+
+    const checkAndRequestPermission = async () => {
+      if (Notification.permission === 'default') {
+        await Notification.requestPermission();
+      }
+    };
+    checkAndRequestPermission();
+    
+    const intervalId = setInterval(() => {
+      if (Notification.permission !== 'granted') {
+        return;
+      }
+
+      const reminders = getReminders();
+      const now = new Date();
+      const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const today = now.toISOString().split('T')[0];
+
+      const notifiedKey = 'notifiedReminders';
+      const notifiedToday: Record<string, string> = JSON.parse(localStorage.getItem(notifiedKey) || '{}');
+
+      reminders.forEach(reminder => {
+        if (reminder.time === currentTime) {
+          if (notifiedToday[reminder.id] !== today) {
+            new Notification('WellTrack: Medication Reminder', {
+              body: `It's time to take your ${reminder.name}.`,
+            });
+            notifiedToday[reminder.id] = today;
+          }
+        }
+      });
+      
+      Object.keys(notifiedToday).forEach(key => {
+        if (notifiedToday[key] !== today) {
+          delete notifiedToday[key];
+        }
+      });
+
+      localStorage.setItem(notifiedKey, JSON.stringify(notifiedToday));
+
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, []);
   
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${
-      isActive ? 'bg-primary text-white' : 'text-text-secondary hover:bg-secondary hover:text-white'
+      isActive ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'text-text-secondary hover:bg-secondary hover:text-white'
     }`;
 
   return (
     <div className="min-h-screen bg-transparent font-sans">
-      <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-lg border-b border-border-color">
+      <nav className="sticky top-0 z-50 bg-card backdrop-blur-xl border-b border-border-color shadow-2xl shadow-black/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <div className="flex items-center">
@@ -37,6 +88,7 @@ const Layout: React.FC<LayoutProps> = ({ children, onLogout }) => {
                 <NavLink to="/symptom-checker" className={navLinkClass}>Symptom Checker</NavLink>
                 <NavLink to="/nearby-services" className={navLinkClass}>Nearby Services</NavLink>
                 <NavLink to="/dashboard" className={navLinkClass}>Dashboard</NavLink>
+                <NavLink to="/reminders" className={navLinkClass}>Reminders</NavLink>
                 <button onClick={onLogout} className="flex items-center px-4 py-2 rounded-full text-sm font-semibold text-text-secondary hover:bg-secondary hover:text-white transition-colors">Logout</button>
               </div>
             </div>
@@ -59,6 +111,7 @@ const Layout: React.FC<LayoutProps> = ({ children, onLogout }) => {
               <NavLink to="/symptom-checker" className={navLinkClass} onClick={() => setIsMenuOpen(false)}>Symptom Checker</NavLink>
               <NavLink to="/nearby-services" className={navLinkClass} onClick={() => setIsMenuOpen(false)}>Nearby Services</NavLink>
               <NavLink to="/dashboard" className={navLinkClass} onClick={() => setIsMenuOpen(false)}>Dashboard</NavLink>
+              <NavLink to="/reminders" className={navLinkClass} onClick={() => setIsMenuOpen(false)}>Reminders</NavLink>
               <button onClick={() => { onLogout(); setIsMenuOpen(false); }} className="w-full text-left flex items-center px-4 py-2 rounded-full text-sm font-semibold text-text-secondary hover:bg-secondary hover:text-white transition-colors">Logout</button>
             </div>
           </div>

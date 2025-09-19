@@ -1,11 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getHistory, clearHistory } from '../services/historyService';
+import { generateHealthInsights } from '../services/geminiService';
+import { generatePdfReport } from '../services/pdfService';
 import type { HistoryItem, SymptomAnalysis } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const Dashboard: React.FC = () => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isDownloading, setIsDownloading] = useState<string | null>(null);
+  const [insights, setInsights] = useState<string | null>(null);
+  const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
+  const [insightsError, setInsightsError] = useState<string | null>(null);
 
   useEffect(() => {
     setHistory(getHistory());
@@ -15,6 +21,35 @@ const Dashboard: React.FC = () => {
     clearHistory();
     setHistory([]);
     setShowConfirm(false);
+  };
+  
+  const handleDownloadReport = async (item: HistoryItem) => {
+    setIsDownloading(item.id);
+    // Use a small timeout to allow the UI to update to the loading state
+    // before the potentially blocking PDF generation starts.
+    await new Promise(resolve => setTimeout(resolve, 50)); 
+    try {
+      generatePdfReport(item);
+    } catch(error) {
+      console.error("Failed to generate PDF report:", error);
+      // Optionally, set an error state to show a message to the user
+    } finally {
+      setIsDownloading(null);
+    }
+  };
+
+  const handleGenerateInsights = async () => {
+    setIsGeneratingInsights(true);
+    setInsights(null);
+    setInsightsError(null);
+    try {
+      const result = await generateHealthInsights(history);
+      setInsights(result);
+    } catch (err) {
+      setInsightsError(err instanceof Error ? err.message : 'An unknown error occurred.');
+    } finally {
+      setIsGeneratingInsights(false);
+    }
   };
 
   const getSeverityBadgeColor = (severity: SymptomAnalysis['severity']) => {
@@ -52,11 +87,46 @@ const Dashboard: React.FC = () => {
       <header className="text-center animate-fade-in-up">
         <h1 className="text-4xl sm:text-5xl font-bold text-primary">Dashboard</h1>
         <p className="text-text-secondary mt-3 max-w-2xl mx-auto">
-          Review your past symptom analysis history.
+          Review your past symptom analysis history and get AI-powered insights.
         </p>
       </header>
 
-      <div className="max-w-4xl mx-auto animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+      {history.length > 0 && (
+        <div className="max-w-4xl mx-auto bg-card backdrop-blur-xl border border-border-color p-6 rounded-2xl shadow-2xl shadow-black/20 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+          <h2 className="text-2xl font-bold text-primary mb-4">AI-Powered Insights</h2>
+          <p className="text-text-secondary mb-4">
+            Let our AI analyze your health log to find patterns and provide personalized wellness suggestions.
+          </p>
+          
+          <button
+            onClick={handleGenerateInsights}
+            disabled={isGeneratingInsights}
+            className="w-full sm:w-auto bg-primary text-white font-bold py-2 px-6 rounded-lg hover:bg-primary-dark transition-all duration-300 ease-in-out disabled:bg-gray-500/50 disabled:cursor-not-allowed flex items-center justify-center shadow-lg shadow-primary/20 transform hover:scale-105"
+          >
+            {isGeneratingInsights ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                Analyzing History...
+              </>
+            ) : (
+              'Generate Insights'
+            )}
+          </button>
+
+          {insightsError && <p className="mt-4 text-center text-red-400">{insightsError}</p>}
+          
+          {insights && (
+            <div className="mt-6 bg-background/50 p-4 rounded-md">
+              <ul className="space-y-2 list-disc list-inside text-text-secondary">
+                {insights.split('*').map((item, index) => item.trim() && <li key={index}>{item.trim()}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+
+      <div className="max-w-4xl mx-auto animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
         <div className="flex justify-end mb-4">
           {history.length > 0 && !showConfirm && (
              <button
@@ -69,7 +139,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         {showConfirm && (
-            <div className="bg-card/80 backdrop-blur-lg border border-border-color p-6 rounded-2xl shadow-lg mb-6 text-center">
+            <div className="bg-card backdrop-blur-xl border border-border-color p-6 rounded-2xl shadow-2xl shadow-black/20 mb-6 text-center">
                 <p className="text-text-primary mb-4">Are you sure you want to delete your entire history? This action cannot be undone.</p>
                 <div className="flex justify-center gap-4">
                     <button onClick={() => setShowConfirm(false)} className="bg-secondary text-white font-semibold py-2 px-6 rounded-lg hover:bg-gray-600 transition-colors">
@@ -83,7 +153,7 @@ const Dashboard: React.FC = () => {
         )}
 
         {history.length === 0 ? (
-          <div className="text-center bg-card/80 backdrop-blur-lg border border-border-color p-10 rounded-2xl shadow-lg">
+          <div className="text-center bg-card backdrop-blur-xl border border-border-color p-10 rounded-2xl shadow-2xl shadow-black/20">
             <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
@@ -94,22 +164,23 @@ const Dashboard: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-8">
-            <div className="bg-card/80 backdrop-blur-lg border border-border-color p-4 sm:p-6 rounded-2xl shadow-lg">
+            <div className="bg-card backdrop-blur-xl border border-border-color p-4 sm:p-6 rounded-2xl shadow-2xl shadow-black/20">
               <h2 className="text-2xl font-bold text-primary mb-4">Symptom Frequency</h2>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={symptomFrequencyData} margin={{ top: 5, right: 20, left: -15, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(55, 65, 81, 0.6)" />
-                  <XAxis dataKey="name" stroke="#9CA3AF" tick={{ fontSize: 12 }} />
-                  <YAxis stroke="#9CA3AF" allowDecimals={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+                  <XAxis dataKey="name" stroke="#a1a1aa" tick={{ fontSize: 12 }} />
+                  <YAxis stroke="#a1a1aa" allowDecimals={false} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#111827',
-                      borderColor: 'rgba(55, 65, 81, 0.6)',
-                      color: '#F9FAFB',
+                      backgroundColor: '#0a0a0a',
+                      borderColor: 'rgba(255, 255, 255, 0.1)',
+                      color: '#f3f4f6',
                     }}
                     cursor={{ fill: 'rgba(236, 72, 153, 0.1)' }}
                   />
-                  <Bar dataKey="count" fill="#F472B6" name="Times Reported" />
+                  <Legend wrapperStyle={{ color: '#f3f4f6' }} />
+                  <Bar dataKey="count" fill="#EC4899" name="Times Reported" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -118,7 +189,7 @@ const Dashboard: React.FC = () => {
               <h2 className="text-2xl font-bold text-primary mb-4">Detailed History</h2>
               <div className="space-y-6">
                 {history.map((item) => (
-                  <div key={item.id} className="bg-card/80 backdrop-blur-lg border border-border-color p-6 rounded-2xl shadow-lg transition-transform hover:scale-[1.02] duration-300">
+                  <div key={item.id} className="bg-card backdrop-blur-xl border border-border-color p-6 rounded-2xl shadow-2xl shadow-black/20 transition-transform hover:scale-[1.02] duration-300">
                     <div className="flex justify-between items-start mb-3">
                       <p className="text-sm text-text-secondary font-medium">{item.date}</p>
                        <span className={`px-3 py-1 text-xs font-bold rounded-full ${getSeverityBadgeColor(item.analysis.severity)}`}>
@@ -140,6 +211,26 @@ const Dashboard: React.FC = () => {
                     <div className="mt-4">
                        <h4 className="font-semibold text-md text-primary mb-2">Recommendation:</h4>
                        <p className="text-text-secondary">{item.analysis.recommendation}</p>
+                    </div>
+                    <div className="mt-6 flex justify-end">
+                      <button
+                        onClick={() => handleDownloadReport(item)}
+                        disabled={isDownloading === item.id}
+                        className="flex items-center gap-2 text-sm bg-primary/20 text-primary font-semibold py-2 px-4 rounded-lg hover:bg-primary/40 transition-colors duration-300 disabled:opacity-50 disabled:cursor-wait"
+                        aria-label={`Download report for entry from ${item.date}`}
+                      >
+                        {isDownloading === item.id ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            <span>Generating...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            <span>Download Report</span>
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
                 ))}

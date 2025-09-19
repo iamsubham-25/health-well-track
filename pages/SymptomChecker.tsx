@@ -3,6 +3,12 @@ import { analyzeSymptoms } from '../services/geminiService';
 import { addHistoryItem } from '../services/historyService';
 import type { SymptomAnalysis } from '../types';
 
+const commonSymptoms = [
+  'Fever', 'Cough', 'Headache', 'Sore Throat',
+  'Fatigue', 'Nausea', 'Shortness of Breath', 'Muscle Aches',
+  'Runny Nose', 'Chills', 'Dizziness', 'Rash'
+];
+
 const SymptomChecker: React.FC = () => {
   const [symptoms, setSymptoms] = useState('');
   const [analysis, setAnalysis] = useState<SymptomAnalysis | null>(null);
@@ -23,11 +29,16 @@ const SymptomChecker: React.FC = () => {
       const result = await analyzeSymptoms(symptoms);
       setAnalysis(result);
       addHistoryItem({ symptoms, analysis: result });
+    // FIX: Added curly braces to the catch block to fix syntax error.
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred.');
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  const handleSymptomClick = (symptomToAdd: string) => {
+    setSymptoms(prev => prev ? `${prev}, ${symptomToAdd}` : symptomToAdd);
   };
 
   const getSeverityInfo = (severity: SymptomAnalysis['severity']) => {
@@ -49,16 +60,35 @@ const SymptomChecker: React.FC = () => {
         </p>
       </header>
 
-      <div className="max-w-2xl mx-auto bg-card/80 backdrop-blur-lg border border-border-color p-6 rounded-2xl shadow-lg animate-fade-in-up" style={{animationDelay: '0.2s'}}>
+      <div className="max-w-2xl mx-auto bg-card backdrop-blur-xl border border-border-color p-6 rounded-2xl shadow-2xl shadow-black/20 animate-fade-in-up" style={{animationDelay: '0.2s'}}>
         <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <p className="block text-sm font-medium text-text-secondary mb-3">
+              Select common symptoms or describe them below:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {commonSymptoms.map((symptom) => (
+                <button
+                  key={symptom}
+                  type="button"
+                  onClick={() => handleSymptomClick(symptom)}
+                  disabled={isLoading}
+                  className="px-3 py-1 bg-secondary text-text-secondary text-sm rounded-full hover:bg-primary hover:text-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {symptom}
+                </button>
+              ))}
+            </div>
+          </div>
+        
           <label htmlFor="symptoms" className="block text-sm font-medium text-text-primary mb-2">
-            Describe Your Symptoms
+            Your Symptoms
           </label>
           <textarea
             id="symptoms"
-            rows={6}
-            className="w-full p-3 bg-background border border-border-color rounded-md focus:ring-2 focus:ring-primary focus:border-primary transition duration-150 ease-in-out text-text-primary"
-            placeholder="e.g., 'I have a persistent cough, a slight fever, and a headache...'"
+            rows={5}
+            className="w-full p-3 bg-background/50 border border-border-color rounded-md focus:ring-2 focus:ring-primary focus:border-primary transition duration-150 ease-in-out text-text-primary"
+            placeholder="e.g., 'I have a persistent cough that started 2 days ago, a slight fever, and a headache...'"
             value={symptoms}
             onChange={(e) => setSymptoms(e.target.value)}
             disabled={isLoading}
@@ -86,7 +116,7 @@ const SymptomChecker: React.FC = () => {
         <div className="max-w-2xl mx-auto mt-8 space-y-6">
           <h2 className="text-3xl font-bold text-center text-primary animate-fade-in-up">Analysis Results</h2>
           
-          <div className="bg-card/80 backdrop-blur-lg border border-border-color p-6 rounded-2xl shadow-lg animate-fade-in-up" style={{animationDelay: '0.2s'}}>
+          <div className="bg-card backdrop-blur-xl border border-border-color p-6 rounded-2xl shadow-2xl shadow-black/20 animate-fade-in-up" style={{animationDelay: '0.2s'}}>
             <h3 className="font-semibold text-xl mb-3 flex items-center gap-2">
                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={getSeverityInfo(analysis.severity).icon} /></svg>
               Severity Assessment
@@ -96,7 +126,7 @@ const SymptomChecker: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-card/80 backdrop-blur-lg border border-border-color p-6 rounded-2xl shadow-lg animate-fade-in-up" style={{animationDelay: '0.4s'}}>
+          <div className="bg-card backdrop-blur-xl border border-border-color p-6 rounded-2xl shadow-2xl shadow-black/20 animate-fade-in-up" style={{animationDelay: '0.4s'}}>
             <h3 className="font-semibold text-xl mb-4 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
                 Possible Conditions
@@ -111,7 +141,7 @@ const SymptomChecker: React.FC = () => {
             </div>
           </div>
           
-          <div className="bg-card/80 backdrop-blur-lg border border-border-color p-6 rounded-2xl shadow-lg animate-fade-in-up" style={{animationDelay: '0.6s'}}>
+          <div className="bg-card backdrop-blur-xl border border-border-color p-6 rounded-2xl shadow-2xl shadow-black/20 animate-fade-in-up" style={{animationDelay: '0.6s'}}>
              <h3 className="font-semibold text-xl mb-3 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 Recommended Action

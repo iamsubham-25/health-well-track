@@ -6,6 +6,7 @@ import SymptomChecker from './pages/SymptomChecker';
 import NearbyServices from './pages/NearbyServices';
 import Dashboard from './pages/Dashboard';
 import LoginPage from './pages/LoginPage';
+import Reminders from './pages/Reminders';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -45,6 +46,7 @@ const App: React.FC = () => {
             <Route path="/symptom-checker" element={<SymptomChecker />} />
             <Route path="/nearby-services" element={<NearbyServices />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/reminders" element={<Reminders />} />
             <Route path="*" element={<Navigate to="/symptom-checker" />} />
           </Routes>
         </Layout>

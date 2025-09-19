@@ -17,23 +17,18 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, you'd validate credentials here
     onLogin();
   };
 
   return (
     <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-4 overflow-hidden">
-      <div className="absolute inset-0 z-0 opacity-30">
-        <div className="absolute h-96 w-96 rounded-full bg-primary/30 blur-3xl animate-pulse -top-20 -left-20"></div>
-        <div className="absolute h-96 w-96 rounded-full bg-primary/30 blur-3xl animate-pulse -bottom-20 -right-20" style={{animationDelay: '2s'}}></div>
-      </div>
       <div className="w-full max-w-md text-center z-10">
         <div className="flex justify-center items-center mb-6">
             <AppLogoIcon className="h-20 w-20 text-primary" />
         </div>
         <h1 className="text-5xl font-bold text-text-primary mb-2 animate-fade-in-up">Welcome to WellTrack</h1>
         <p className="text-lg text-text-secondary mb-8 animate-fade-in-up" style={{animationDelay: '0.2s'}}>Your personal AI-powered health assistant.</p>
-        <div className="bg-card/80 backdrop-blur-lg border border-border-color p-8 rounded-2xl shadow-2xl animate-fade-in-up" style={{animationDelay: '0.4s'}}>
+        <div className="bg-card backdrop-blur-xl border border-border-color p-8 rounded-2xl shadow-2xl shadow-black/20 animate-fade-in-up" style={{animationDelay: '0.4s'}}>
           <h2 className="text-2xl font-semibold text-text-primary mb-6">Sign In</h2>
           <form onSubmit={handleFormSubmit} className="space-y-6 text-left">
             <div>
@@ -46,7 +41,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 name="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full p-3 bg-background border border-border-color rounded-md focus:ring-2 focus:ring-primary focus:border-primary transition duration-150 ease-in-out text-text-primary placeholder:text-gray-500"
+                className="w-full p-3 bg-background/50 border border-border-color rounded-md focus:ring-2 focus:ring-primary focus:border-primary transition duration-150 ease-in-out text-text-primary placeholder:text-gray-500"
                 placeholder="you@example.com"
                 required
               />
@@ -61,7 +56,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 name="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-3 bg-background border border-border-color rounded-md focus:ring-2 focus:ring-primary focus:border-primary transition duration-150 ease-in-out text-text-primary placeholder:text-gray-500"
+                className="w-full p-3 bg-background/50 border border-border-color rounded-md focus:ring-2 focus:ring-primary focus:border-primary transition duration-150 ease-in-out text-text-primary placeholder:text-gray-500"
                 placeholder="••••••••"
                 required
               />

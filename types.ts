@@ -17,8 +17,14 @@ export interface GroundingChunk {
   }
 }
 
+export interface Place {
+  name: string;
+  address: string;
+}
+
 export interface NearbyServiceResult {
   summary: string;
+  places: Place[];
   sources: GroundingChunk[];
 }
 
@@ -27,4 +33,10 @@ export interface HistoryItem {
   date: string;
   symptoms: string;
   analysis: SymptomAnalysis;
+}
+
+export interface Reminder {
+  id: string;
+  name: string;
+  time: string; // HH:MM format
 }

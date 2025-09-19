@@ -2,11 +2,13 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { SymptomAnalysis, NearbyServiceResult, HistoryItem } from '../types';
 
-if (!process.env.API_KEY) {
-  throw new Error("API_KEY environment variable not set");
+const apiKey = process.env.REACT_APP_API_KEY;
+
+if (!apiKey) {
+  throw new Error("REACT_APP_API_KEY environment variable not set");
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey });
 
 const symptomAnalysisSchema = {
   type: Type.OBJECT,
@@ -52,7 +54,11 @@ export const analyzeSymptoms = async (symptoms: string): Promise<SymptomAnalysis
       }
     });
     
-    const jsonString = response.text.trim();
+    const text = response.text;
+    if (!text) {
+      throw new Error("AI response did not contain any text.");
+    }
+    const jsonString = text.trim();
     return JSON.parse(jsonString);
 
   } catch (error) {
@@ -72,10 +78,19 @@ export const findNearbyServices = async (serviceType: string, location: string):
     });
 
     const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    const text = response.text;
+
+    if (!text) {
+      return {
+        summary: "The AI did not return a valid response.",
+        places: [],
+        sources
+      };
+    }
 
     try {
       // The response text might have markdown or be just the JSON string.
-      const cleanedText = response.text.replace(/^```json\s*|```\s*$/g, '').trim();
+      const cleanedText = text.replace(/^```json\s*|```\s*$/g, '').trim();
       const data = JSON.parse(cleanedText);
       
       if (!data.summary || !Array.isArray(data.places)) {
@@ -89,10 +104,10 @@ export const findNearbyServices = async (serviceType: string, location: string):
       };
     } catch (jsonError) {
       console.error("Failed to parse JSON from AI response:", jsonError);
-      console.error("Raw AI response text:", response.text);
+      console.error("Raw AI response text:", text);
       // Fallback: return the raw text as summary if JSON parsing fails, so user still sees something.
       return {
-        summary: `The AI returned the following information, but it could not be formatted correctly:\n\n${response.text}`,
+        summary: `The AI returned the following information, but it could not be formatted correctly:\n\n${text}`,
         places: [],
         sources
       };
@@ -127,7 +142,11 @@ ${formattedHistory}`;
       }
     });
 
-    return response.text.trim();
+    const text = response.text;
+    if (!text) {
+      throw new Error("AI response did not contain any text.");
+    }
+    return text.trim();
 
   } catch (error) {
     console.error("Error generating health insights:", error);
